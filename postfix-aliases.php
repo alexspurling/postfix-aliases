@@ -90,9 +90,17 @@ function my_plugin_options() {
     echo '<table>';
     foreach ( $aliases as $alias )
     {
-        echo '<tr><td>'.$alias->address.'</td>';
-        echo '<td>'.$alias->goto.'</td>';
-        echo '<td><button type="button">Remove</button></td></tr>';
+      echo '<h3>'.$alias->address.'</h3>';
+      echo '<select multiple="multiple">';
+      $addresses = explode(',',$alias->goto);
+      foreach ( $addresses as $address )
+      {
+        echo '<option>'.$address.'</option>';
+      }
+      echo '</select>';
+      echo '<tr><td>'.$alias->address.'</td>';
+      echo '<td>'.$alias->goto.'</td>';
+      echo '<td><button type="button">Remove</button></td></tr>';
     }
     ?>
     </table>
