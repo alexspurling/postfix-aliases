@@ -56,6 +56,20 @@ function my_plugin_menu() {
     add_options_page( 'Postfix Alias Options', 'Postfix Aliases', 'manage_options', 'postfix-aliases', 'my_plugin_options' );
 }
 
+function getAddresses($aliasname)
+{
+    global $wpdb;
+  $addressString = $wpdb->get_results("SELECT goto FROM $table_name WHERE address = $aliasname");
+  return explode(',',$addressString);
+}
+
+function storeAddresses($aliasname, $addresses)
+{
+    global $wpdb;
+  $addressString = implode(',', $addresses);
+  $wpdb->query("UPDATE $wpdb->$table_name SET goto = $addressString WHERE address = $aliasname");
+}
+
 /** Step 3. */
 function my_plugin_options() {
     if ( !current_user_can( 'manage_options' ) )  {
@@ -66,48 +80,53 @@ function my_plugin_options() {
     <?
     global $wpdb;
     $table_name = $wpdb->prefix . "pf_aliases";
-    if(isset($_POST['aliasname'])) {
 
+    error_reporting(E_ALL);
+
+    //Add an address to an existing alias
+    if(isset($_POST['newaddress'])) {
+      $newaddress = $_POST['newaddress'];
       $aliasname = $_POST['aliasname'];
-      $addresses = $_POST['addresses'];
+      $addresses = getAddresses($aliasname);
+      array_push($addresses, $newaddress);
+      storeAddresses($aliasname, $addresses);
+    }
+
+    //Add a new alias
+    if(isset($_POST['newaliasname'])) {
+      $newaliasname = $_POST['newaliasname'];
       $wpdb->insert(
         $table_name,
         array(
-         'address' => $aliasname,
-         'goto' => $addresses
+         'address' => $newaliasname
         )
       );
-      echo '<strong>Inserted alias for '.$aliasname.'</strong><br>';
     }
 
-    $aliases = $wpdb->get_results(
-        "
-        SELECT address, goto
-        FROM $table_name
-        "
-    );
-    echo 'Found '.$aliases.length.' aliases';
-    echo '<table>';
+    $aliases = $wpdb->get_results("SELECT address, goto FROM $table_name");
     foreach ( $aliases as $alias )
     {
+      echo '<form name="aliasesform" method="POST" action="">';
       echo '<h3>'.$alias->address.'</h3>';
-      echo '<select multiple="multiple">';
+      echo '<select multiple="multiple" name="selectedaddresses">';
       $addresses = explode(',',$alias->goto);
       foreach ( $addresses as $address )
       {
         echo '<option>'.$address.'</option>';
       }
-      echo '</select>';
-      echo '<tr><td>'.$alias->address.'</td>';
-      echo '<td>'.$alias->goto.'</td>';
-      echo '<td><button type="button">Remove</button></td></tr>';
+      echo '</select><br>';
+      echo '<input type="hidden" name="aliasname" value="'.$alias->address.'">';
+      ?>
+      <input name="newaddress"><button type="submit">Add new address</button><br>
+      <input type="submit" name="removeselected"  value="Remove all selected addresses"><br>
+      </form>
+      <?
     }
     ?>
-    </table>
-    <form name="addalias" method="POST" action="">
-      Alias: <input name="aliasname"><br>
-      Addresses: <input name="addresses"><br>
-      <button type="submit">Add new alias</button>
+    <hr>
+    <form name="newaliasform" method="POST" action="">
+      <h3>Add new alias</h3>
+      <input name="newaliasname"><button type="submit">Add</button>
     </form>
     <?
 }
