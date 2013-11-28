@@ -44,52 +44,30 @@ function pf_alias_install_data() {
    $rows_affected = $wpdb->insert( $table_name, array( 'time' => current_time('mysql'), 'name' => $welcome_name, 'text' => $welcome_text ) );
 }
 
-
-
 register_activation_hook(__FILE__, 'pf_alias_install');
 
-/** Step 2 (from text above). */
-add_action( 'admin_menu', 'my_plugin_menu' );
+//Register post processing
+add_action('init', 'process_post');
+//Register the plugin's menu
+add_action( 'admin_menu', 'pf_al_plugin_menu' );
 
-/** Step 1. */
-function my_plugin_menu() {
-    add_options_page( 'Postfix Alias Options', 'Postfix Aliases', 'manage_options', 'postfix-aliases', 'my_plugin_options' );
+//Add the plugin to the options menu
+function pf_al_plugin_menu() {
+    add_options_page( 'Postfix Alias Options', 'Postfix Aliases', 'manage_options', 'postfix-aliases', 'pf_al_plugin' );
 }
 
-function getAddresses($aliasname)
-{
-    global $wpdb;
-  $addressString = $wpdb->get_results("SELECT goto FROM $table_name WHERE address = $aliasname");
-  return explode(',',$addressString);
-}
+function process_post() {
 
-function storeAddresses($aliasname, $addresses)
-{
-    global $wpdb;
-  $addressString = implode(',', $addresses);
-  $wpdb->query("UPDATE $wpdb->$table_name SET goto = $addressString WHERE address = $aliasname");
-}
-
-/** Step 3. */
-function my_plugin_options() {
-    if ( !current_user_can( 'manage_options' ) )  {
-        wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
-    }
-    ?>
-    <h2>Mailing Lists</h2>
-    <?
-    global $wpdb;
-    $table_name = $wpdb->prefix . "pf_aliases";
-
-    error_reporting(E_ALL);
+    $redirect = false;
 
     //Add an address to an existing alias
     if(isset($_POST['newaddress'])) {
       $newaddress = $_POST['newaddress'];
       $aliasname = $_POST['aliasname'];
-      $addresses = getAddresses($aliasname);
+      $addresses = pf_al_get_addresses($aliasname);
       array_push($addresses, $newaddress);
-      storeAddresses($aliasname, $addresses);
+      pf_al_store_addresses($aliasname, $addresses);
+      $redirect = true;
     }
 
     //Add a new alias
@@ -101,14 +79,51 @@ function my_plugin_options() {
          'address' => $newaliasname
         )
       );
+      $redirect = true;
     }
+
+    if ($redirect) {
+      global $wp;
+      $current_url = admin_url( "options-general.php?page=".$_GET["page"] );
+
+      error_log('About to redirect to: '.$current_url);
+      wp_redirect($current_url);
+    }
+}
+
+function pf_al_get_addresses($aliasname)
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . "pf_aliases";
+  $addressString = $wpdb->get_var("SELECT goto FROM $table_name WHERE address = '$aliasname'");
+  return explode(',',$addressString);
+}
+
+function pf_al_store_addresses($aliasname, $addresses)
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . "pf_aliases";
+  $addressString = implode(',', $addresses);
+  $wpdb->query("UPDATE $table_name SET goto = '$addressString' WHERE address = '$aliasname'");
+}
+
+//This is called when showing the plugin's option page
+function pf_al_plugin() {
+    if ( !current_user_can( 'manage_options' ) )  {
+        wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+    }
+    ?>
+    <h2>Mailing Lists</h2>
+    <?
+    global $wpdb;
+    $table_name = $wpdb->prefix . "pf_aliases";
 
     $aliases = $wpdb->get_results("SELECT address, goto FROM $table_name");
     foreach ( $aliases as $alias )
     {
       echo '<form name="aliasesform" method="POST" action="">';
       echo '<h3>'.$alias->address.'</h3>';
-      echo '<select multiple="multiple" name="selectedaddresses">';
+      echo '<select multiple="multiple" name="selectedaddresses" size="15" style="width: 300px;">';
       $addresses = explode(',',$alias->goto);
       foreach ( $addresses as $address )
       {
