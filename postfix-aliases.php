@@ -132,6 +132,9 @@ function pf_al_get_addresses($aliasname)
 {
     global $wpdb, $pf_al_table_name;
     $addressString = $wpdb->get_var($wpdb->prepare("SELECT goto FROM $pf_al_table_name WHERE address = '%s'", $aliasname));
+    if (strlen($addressString) == 0) {
+        return array();
+    }
     return explode(',',$addressString);
 }
 
