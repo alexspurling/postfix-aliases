@@ -138,6 +138,7 @@ function pf_al_store_addresses($aliasname, $addresses)
 function pf_al_display_alias($aliasname) {
     $addresses = pf_al_get_addresses($aliasname);
 
+    echo '<a href="'.pf_al_get_main_page().'">Back</a>';
     echo '<form name="aliasesform" method="POST" action="">';
     echo '<h3>'.$aliasname.'</h3>';
     echo '<select multiple="multiple" name="selectedaddresses" size="15" style="width: 300px;">';
