@@ -57,10 +57,8 @@ function pf_al_get_alias_page($aliasname) {
 }
 
 function pf_al_process_post() {
-
     global $wpdb, $pf_al_table_name;
-
-    $redirect = false;
+    global $wp;
 
     //Add an address to an existing alias
     if(isset($_POST['newaddress'])) {
@@ -69,7 +67,7 @@ function pf_al_process_post() {
       $addresses = pf_al_get_addresses($aliasname);
       array_push($addresses, $newaddress);
       pf_al_store_addresses($aliasname, $addresses);
-      $redirect = true;
+      wp_redirect(pf_al_get_alias_page($aliasname));
     }
 
     //Add a new alias
@@ -81,15 +79,7 @@ function pf_al_process_post() {
          'address' => $newaliasname
         )
       );
-      $redirect = true;
-    }
-
-    if ($redirect) {
-      global $wp;
-      $current_url = pf_al_get_main_page();
-
-      error_log('About to redirect to: '.$current_url);
-      wp_redirect($current_url);
+      wp_redirect(pf_al_get_main_page());
     }
 }
 
