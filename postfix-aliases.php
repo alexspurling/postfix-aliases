@@ -61,13 +61,13 @@ function pf_al_process_post() {
     global $wp;
 
     if(isset($_POST['removeaddress'])) {
-      error_log("Removing: ".$_POST['selectedaddresses']);
       $aliasname = $_POST['aliasname'];
+      pf_al_remove_from_alias($aliasname, $_POST['selectedaddresses']);
       wp_redirect(pf_al_get_alias_page($aliasname));
     }
 
     //Add an address to an existing alias
-    if(isset($_POST['newaddress'])) {
+    if(isset($_POST['addnewaddress'])) {
       $newaddress = $_POST['newaddress'];
       $aliasname = $_POST['aliasname'];
       $addresses = pf_al_get_addresses($aliasname);
@@ -77,7 +77,7 @@ function pf_al_process_post() {
     }
 
     //Add a new alias
-    if(isset($_POST['addnewaddress'])) {
+    if(isset($_POST['addnewalias'])) {
       $newaliasname = $_POST['newaliasname'];
       $wpdb->insert(
         $pf_al_table_name,
@@ -120,7 +120,7 @@ function pf_al_display_all_aliases() {
     <hr>
     <form name="newaliasform" method="POST" action="">
       <h3>Add new mailing list</h3>
-      <input name="newaliasname"><button type="submit">Add</button>
+      <input name="newaliasname"><input type="submit" name="addnewalias" value="Add">
     </form>
     <?
 }
@@ -143,7 +143,14 @@ function pf_al_store_addresses($aliasname, $addresses)
 {
     global $wpdb, $pf_al_table_name;
     $addressString = implode(',', $addresses);
-    $wpdb->query($wpdb->prepare("UPDATE $pf_al_table_name SET goto = '$addressString' WHERE address = '%s'", $aliasname));
+    $wpdb->query($wpdb->prepare("UPDATE $pf_al_table_name SET goto = '%s' WHERE address = '%s'", $addressString, $aliasname));
+}
+
+function pf_al_remove_from_alias($aliasname, $addresses_to_remove)
+{
+    $addresses = pf_al_get_addresses($aliasname);
+    $newAddresses = array_diff($addresses, $addresses_to_remove);
+    pf_al_store_addresses($aliasname, $newAddresses);
 }
 
 function pf_al_display_alias($aliasname) {
@@ -162,7 +169,7 @@ function pf_al_display_alias($aliasname) {
     echo '<td valign="top"><input type="submit" name="removeaddress" value="Remove"></td>';
     echo '</tr></table>';
     echo '<input type="hidden" name="aliasname" value="'.$aliasname.'">';
-    echo '<input name="newaddress"><input type="submit" name"addnewaddress" value="Add new address"><br>';
+    echo '<input name="newaddress"><input type="submit" name="addnewaddress" value="Add new address"><br>';
     echo '</form>';
 }
 ?>
