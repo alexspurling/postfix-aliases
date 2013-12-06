@@ -101,12 +101,13 @@ function pf_al_plugin() {
 
 function pf_al_display_all_aliases() {
     global $wpdb, $pf_al_table_name;
-    $aliases = $wpdb->get_results("SELECT address FROM $pf_al_table_name");
+    $aliases = $wpdb->get_results("SELECT address, goto FROM $pf_al_table_name");
 
-    echo '<table><tr><th>Email address</th></tr>';
+    echo '<table><tr><th>Mailing List</th><th>Num Subscribers</th></tr>';
     foreach ( $aliases as $alias )
     {
-        echo '<tr><td><a href="'.pf_al_get_alias_page($alias->address).'">'.$alias->address.'</td></tr>';
+        $numAddresses = count(pf_al_get_address_array($alias->goto));
+        echo '<tr><td><a href="'.pf_al_get_alias_page($alias->address).'">'.$alias->address.'</td><td>'.$numAddresses.'</td></tr>';
     }
     ?>
     </table>
@@ -118,14 +119,18 @@ function pf_al_display_all_aliases() {
     <?
 }
 
+function pf_al_get_address_array($address_string) {
+    if (strlen($address_string) == 0) {
+        return array();
+    }
+    return explode(',',$address_string);
+}
+
 function pf_al_get_addresses($aliasname)
 {
     global $wpdb, $pf_al_table_name;
     $addressString = $wpdb->get_var($wpdb->prepare("SELECT goto FROM $pf_al_table_name WHERE address = '%s'", $aliasname));
-    if (strlen($addressString) == 0) {
-        return array();
-    }
-    return explode(',',$addressString);
+    return pf_al_get_address_array($addressString);
 }
 
 function pf_al_store_addresses($aliasname, $addresses)
