@@ -105,15 +105,22 @@ function pf_al_plugin() {
     }
 }
 
-function pf_al_display_all_aliases() {
+function pf_al_get_all_aliases() {
     global $wpdb, $pf_al_table_name;
     $aliases = $wpdb->get_results("SELECT address, goto FROM $pf_al_table_name");
+    foreach ($aliases as $alias) {
+        $alias->addresses = pf_al_get_address_array($alias->goto);
+        $alias->numAddresses = count($alias->addresses);
+    }
+    return $aliases;
+}
+
+function pf_al_display_all_aliases() {
+    $aliases = pf_al_get_all_aliases();
 
     echo '<table><tr><th>Mailing List</th><th>Num Subscribers</th></tr>';
-    foreach ( $aliases as $alias )
-    {
-        $numAddresses = count(pf_al_get_address_array($alias->goto));
-        echo '<tr><td><a href="'.pf_al_get_alias_page($alias->address).'">'.$alias->address.'</td><td>'.$numAddresses.'</td></tr>';
+    foreach ($aliases as $alias) {
+        echo '<tr><td>'.pf_al_get_alias_page_link($alias->address).'</td><td>'.$alias->numAddresses.'</td></tr>';
     }
     ?>
     </table>
@@ -122,7 +129,50 @@ function pf_al_display_all_aliases() {
       <h3>Add new mailing list</h3>
       <input name="newaliasname"><input type="submit" name="addnewalias" value="Add">
     </form>
+    <hr>
+    <form name="searchform" method="GET" action="">
+      <h3>Search for email address</h3>
+      <input name="page" type="hidden" value="<?=$_GET['page']?>">
+      <input name="searchaddress"><input type="submit" name="search" value="Search">
+    </form>
     <?
+    if(isset($_GET['searchaddress'])) {
+      $searchaddress = $_GET['searchaddress'];
+      $searchresults = pf_al_get_search_results($aliases, $searchaddress);
+      echo '<table><tr><th>Email</th><th>Subscribed to</th></tr>';
+      foreach ($searchresults as $address => $subscribedto) {
+        echo "<tr><td>$address</td><td>";
+        //Loop through all the mailing lists this email appears in and print a comma separated link for it
+        $i = 0;
+        foreach ($subscribedto as $sub) {
+          echo pf_al_get_alias_page_link($sub);
+          if (++$i != count($subscribedto)) {
+            echo ", ";
+          }
+        }
+        echo "</td></tr>";
+      }
+      echo "</table>";
+    }
+}
+
+function pf_al_get_alias_page_link($alias) {
+    return '<a href="'.pf_al_get_alias_page($alias).'">'.$alias.'</a>';
+}
+
+function pf_al_get_search_results($aliases, $searchaddress) {
+    $results = array();
+    foreach ($aliases as $alias) {
+      foreach ($alias->addresses as $address) {
+        if (strpos($address, $searchaddress) !== false) {
+          if (!array_key_exists($address, $results)) {
+            $results[$address] = array();
+          }
+          array_push($results[$address], $alias->address);
+        }
+      }
+    }
+    return $results;
 }
 
 function pf_al_get_address_array($address_string) {
@@ -172,4 +222,5 @@ function pf_al_display_alias($aliasname) {
     echo '<input name="newaddress"><input type="submit" name="addnewaddress" value="Add new address"><br>';
     echo '</form>';
 }
+
 ?>
