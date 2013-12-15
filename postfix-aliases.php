@@ -62,7 +62,8 @@ function pf_al_process_post() {
 
     if(isset($_POST['removeaddress'])) {
       $aliasname = $_POST['aliasname'];
-      pf_al_remove_from_alias($aliasname, $_POST['selectedaddresses']);
+      $addresstoremove = $_POST['selectedaddresses'];
+      pf_al_remove_address($aliasname, $addresstoremove); 
       wp_redirect(pf_al_get_alias_page($aliasname));
     }
 
@@ -70,9 +71,7 @@ function pf_al_process_post() {
     if(isset($_POST['addnewaddress'])) {
       $newaddress = $_POST['newaddress'];
       $aliasname = $_POST['aliasname'];
-      $addresses = pf_al_get_addresses($aliasname);
-      array_push($addresses, $newaddress);
-      pf_al_store_addresses($aliasname, $addresses);
+      pf_al_add_address($aliasname, $newaddress);
       wp_redirect(pf_al_get_alias_page($aliasname));
     }
 
@@ -182,24 +181,29 @@ function pf_al_get_address_array($address_string) {
     return explode(',',$address_string);
 }
 
-function pf_al_get_addresses($aliasname)
-{
+function pf_al_get_addresses($aliasname) {
     global $wpdb, $pf_al_table_name;
     $addressString = $wpdb->get_var($wpdb->prepare("SELECT goto FROM $pf_al_table_name WHERE address = '%s'", $aliasname));
     return pf_al_get_address_array($addressString);
 }
 
-function pf_al_store_addresses($aliasname, $addresses)
-{
+function pf_al_add_address($aliasname, $newaddress) {
+    $addresses = pf_al_get_addresses($aliasname);
+    if (!in_array($newaddress, $addresses)) {
+      array_push($addresses, $newaddress);
+      pf_al_store_addresses($aliasname, $addresses);
+    }
+}
+
+function pf_al_store_addresses($aliasname, $addresses) {
     global $wpdb, $pf_al_table_name;
     $addressString = implode(',', $addresses);
     $wpdb->query($wpdb->prepare("UPDATE $pf_al_table_name SET goto = '%s' WHERE address = '%s'", $addressString, $aliasname));
 }
 
-function pf_al_remove_from_alias($aliasname, $addresses_to_remove)
-{
+function pf_al_remove_address($aliasname, $addressestoremove) {
     $addresses = pf_al_get_addresses($aliasname);
-    $newAddresses = array_diff($addresses, $addresses_to_remove);
+    $newAddresses = array_diff($addresses, $addressestoremove);
     pf_al_store_addresses($aliasname, $newAddresses);
 }
 
