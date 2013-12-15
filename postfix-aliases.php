@@ -53,7 +53,7 @@ function pf_al_get_main_page() {
 }
 
 function pf_al_get_alias_page($aliasname) {
-    return admin_url( "users.php?page=".$_GET['page'].'&alias='.$aliasname );
+    return admin_url( "users.php?page=".$_GET['page'].'&alias='.urlencode($aliasname));
 }
 
 function pf_al_process_post() {
